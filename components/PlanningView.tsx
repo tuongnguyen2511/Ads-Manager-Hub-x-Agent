@@ -14,7 +14,8 @@ import {
   Users, 
   DollarSign, 
   CheckCircle,
-  MessageCircle
+  MessageCircle,
+  HelpCircle
 } from 'lucide-react';
 import { PlatformId, ForecastResult } from '../types';
 import { generatePerformanceForecast } from '../services/geminiService';
@@ -255,8 +256,8 @@ const PlanningView = () => {
                          return (
                             <div key={channel.platform} className="flex justify-between items-center text-xs">
                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 rounded-full" style={{backgroundColor: platform?.color}}></div>
-                                  <span className="font-medium text-gray-600">{platform?.name}</span>
+                                  <div className="w-2 h-2 rounded-full" style={{backgroundColor: platform?.color || '#9ca3af'}}></div>
+                                  <span className="font-medium text-gray-600">{platform?.name || channel.platform}</span>
                                </div>
                                <span className="font-bold text-gray-900">{formatCurrency(channel.suggestedBudget)}</span>
                             </div>
@@ -283,11 +284,15 @@ const PlanningView = () => {
                       <tbody className="divide-y divide-gray-200">
                          {forecast.channelBreakdown.map((row) => {
                             const platform = platforms.find(p => p.id === row.platform);
+                            const PlatformIcon = platform?.icon || HelpCircle;
+                            const platformColor = platform?.color || '#9ca3af';
+                            const platformName = platform?.name || row.platform;
+
                             return (
                                <tr key={row.platform} className="hover:bg-white transition-colors">
                                   <td className="px-6 py-4 flex items-center gap-2 font-medium text-gray-900">
-                                     <platform.icon size={16} style={{color: platform?.color}} />
-                                     {platform?.name}
+                                     <PlatformIcon size={16} style={{color: platformColor}} />
+                                     {platformName}
                                   </td>
                                   <td className="px-6 py-4 text-right text-gray-600">{row.estimatedReach.toLocaleString()}</td>
                                   <td className="px-6 py-4 text-right text-gray-600">{row.estimatedCpc.toLocaleString()} đ</td>
