@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { CampaignFormData } from "../types";
+import { CampaignFormData, Campaign, PlatformId, ForecastResult } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 const MODEL_FLASH = 'gemini-3-flash-preview';
@@ -68,7 +68,7 @@ export const chatWithAgent = async (message: string, history: {role: string, par
 };
 
 /**
- * Optimizes budget and bidding allocation
+ * Optimizes budget and bidding allocation for a single campaign
  */
 export const optimizeBudgetAI = async (currentBudget: number, currentBidding: string | undefined, platform: string, objective: string): Promise<{suggestedBudget: number, suggestedBidding: string, reason: string}> => {
   try {
@@ -97,6 +97,79 @@ export const optimizeBudgetAI = async (currentBudget: number, currentBidding: st
     };
   }
 }
+
+/**
+ * Automatically allocates a total budget across multiple campaigns
+ */
+export const allocateBudgetsAI = async (
+  totalBudget: number, 
+  campaigns: Campaign[], 
+  optimizationGoal: string
+): Promise<{ allocations: { campaignId: string, suggestedBudget: number, reason: string }[] }> => {
+  try {
+    const campaignsData = campaigns.map(c => ({
+      id: c.id,
+      name: c.name,
+      platform: c.platform,
+      currentBudget: c.budget,
+      ctr: c.ctr,
+      spent: c.spent,
+      clicks: c.clicks,
+      objective: c.objective
+    }));
+
+    const prompt = `
+      Bạn là chuyên gia tối ưu hóa ngân sách quảng cáo. 
+      Tổng ngân sách khả dụng: ${totalBudget} VNĐ.
+      Mục tiêu tối ưu hóa: ${optimizationGoal}.
+      Dưới đây là danh sách các chiến dịch và hiệu suất hiện tại:
+      ${JSON.stringify(campaignsData)}
+
+      Hãy phân bổ lại tổng ngân sách ${totalBudget} VNĐ giữa các chiến dịch này sao cho đạt hiệu quả cao nhất theo mục tiêu đề ra.
+      Tổng các suggestedBudget PHẢI bằng đúng ${totalBudget}.
+      Trả về kết quả dạng JSON.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: MODEL_FLASH,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            allocations: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  campaignId: { type: Type.STRING },
+                  suggestedBudget: { type: Type.NUMBER },
+                  reason: { type: Type.STRING }
+                },
+                required: ["campaignId", "suggestedBudget", "reason"]
+              }
+            }
+          },
+          required: ["allocations"]
+        }
+      }
+    });
+
+    return JSON.parse(response.text || '{"allocations": []}');
+  } catch (error) {
+    console.error("Budget Allocation AI Error:", error);
+    // Basic fallback: Equal distribution
+    const perCampaign = Math.floor(totalBudget / campaigns.length);
+    return {
+      allocations: campaigns.map(c => ({
+        campaignId: c.id,
+        suggestedBudget: perCampaign,
+        reason: "Phân bổ đều do lỗi hệ thống AI (Fallback mode)."
+      }))
+    };
+  }
+};
 
 /**
  * Refines targeting options
@@ -179,4 +252,77 @@ export const suggestCampaignStructure = async (objective: 'conversion' | 'gmv'):
         console.error("AI Structure Suggestion Error:", error);
         return "Hệ thống AI đang bận, vui lòng thử lại sau.";
     }
+}
+
+/**
+ * Generates a Cross-Channel Performance Forecast (Planning Tool)
+ * Simulates data from Google Keyword Planner, FB Audience Insights, Zalo Ads, etc.
+ */
+export const generatePerformanceForecast = async (
+  budget: number,
+  platforms: PlatformId[],
+  keywords: string,
+  objective: string
+): Promise<ForecastResult> => {
+  try {
+    const prompt = `
+      Bạn là một AI Planning Tool mạnh mẽ, có khả năng giả lập và tổng hợp dữ liệu từ Google Keyword Planner, Facebook Audience Insights, TikTok Ads Manager và Zalo Ads API.
+      
+      NHIỆM VỤ: Dự báo hiệu suất chiến dịch quảng cáo trong 30 ngày tới.
+      
+      THÔNG TIN ĐẦU VÀO:
+      - Tổng ngân sách: ${budget} VNĐ
+      - Các kênh đã chọn: ${platforms.join(', ')}
+      - Từ khóa/Lĩnh vực: "${keywords}"
+      - Mục tiêu: ${objective}
+      
+      YÊU CẦU ĐẦU RA (JSON):
+      1. dailyData: Một mảng gồm 7 điểm dữ liệu (đại diện cho xu hướng tuần) với các trường: date (string), clicks (number), impressions (number), conversions (number), cost (number). Dữ liệu nên cho thấy xu hướng tăng trưởng.
+      2. channelBreakdown: Mảng phân tích từng kênh (platform, estimatedReach, estimatedCpc, estimatedConversionRate, suggestedBudget).
+         LƯU Ý ĐẶC BIỆT: 
+         - Với Zalo: tập trung vào chỉ số Form hoặc Message, CPC thường cao hơn một chút nhưng conversion rate tốt.
+         - Với Google: tập trung Search/Shopping.
+         - Với Facebook/TikTok: tập trung hiển thị/reach.
+         - suggestedBudget của các kênh cộng lại phải bằng budget tổng.
+      3. summary: totalReach, totalConversions, avgCpa, roiPrediction (số thập phân, ví dụ 3.5).
+      4. aiAnalysis: Một đoạn văn ngắn (Tiếng Việt) phân tích chiến lược, ví dụ: "Với ngân sách này, bạn nên dồn 40% cho Zalo để lấy leads chất lượng, kết hợp Google Search để bắt nhu cầu...".
+    `;
+
+    const response = await ai.models.generateContent({
+      model: MODEL_FLASH,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+             dailyData: { 
+                 type: Type.ARRAY, 
+                 items: { type: Type.OBJECT, properties: { date: {type: Type.STRING}, clicks: {type: Type.NUMBER}, impressions: {type: Type.NUMBER}, conversions: {type: Type.NUMBER}, cost: {type: Type.NUMBER} } }
+             },
+             channelBreakdown: {
+                 type: Type.ARRAY,
+                 items: { type: Type.OBJECT, properties: { platform: {type: Type.STRING}, estimatedReach: {type: Type.NUMBER}, estimatedCpc: {type: Type.NUMBER}, estimatedConversionRate: {type: Type.NUMBER}, suggestedBudget: {type: Type.NUMBER} } }
+             },
+             summary: {
+                 type: Type.OBJECT,
+                 properties: { totalReach: {type: Type.NUMBER}, totalConversions: {type: Type.NUMBER}, avgCpa: {type: Type.NUMBER}, roiPrediction: {type: Type.NUMBER} }
+             },
+             aiAnalysis: { type: Type.STRING }
+          }
+        }
+      }
+    });
+
+    return JSON.parse(response.text || '{}');
+  } catch (error) {
+    console.error("Forecast Error:", error);
+    // Fallback Mock Data
+    return {
+        dailyData: Array.from({length: 7}, (_, i) => ({ date: `Day ${i+1}`, clicks: 100 + i*10, impressions: 5000 + i*500, conversions: 5 + i, cost: budget/30 })),
+        channelBreakdown: platforms.map(p => ({ platform: p, estimatedReach: 50000, estimatedCpc: 3000, estimatedConversionRate: 0.02, suggestedBudget: budget / platforms.length })),
+        summary: { totalReach: 150000, totalConversions: 200, avgCpa: 55000, roiPrediction: 2.8 },
+        aiAnalysis: "Không thể kết nối AI Server. Dữ liệu giả lập cơ bản."
+    }
+  }
 }

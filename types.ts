@@ -1,3 +1,4 @@
+
 export type PlatformId = 'facebook' | 'google' | 'tiktok' | 'zalo';
 
 export interface Platform {
@@ -68,4 +69,34 @@ export interface Transaction {
   type: 'deposit' | 'withdrawal' | 'spend';
   method?: string;
   status: 'completed' | 'pending' | 'failed';
+}
+
+// --- Planning & Forecast Types ---
+
+export interface ForecastMetric {
+  date: string;
+  clicks: number;
+  impressions: number;
+  conversions: number;
+  cost: number;
+}
+
+export interface ChannelForecast {
+  platform: PlatformId;
+  estimatedReach: number;
+  estimatedCpc: number;
+  estimatedConversionRate: number;
+  suggestedBudget: number;
+}
+
+export interface ForecastResult {
+  dailyData: ForecastMetric[];
+  channelBreakdown: ChannelForecast[];
+  summary: {
+    totalReach: number;
+    totalConversions: number;
+    avgCpa: number;
+    roiPrediction: number;
+  };
+  aiAnalysis: string;
 }

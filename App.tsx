@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
-  Megaphone, 
-  Settings, 
   Plus, 
   TrendingUp,
   CreditCard,
@@ -11,7 +9,6 @@ import {
   Calendar,
   Layers,
   HelpCircle,
-  MoreVertical,
   Folder,
   FileImage,
   ShoppingBag,
@@ -19,16 +16,23 @@ import {
   BarChart2,
   Activity,
   FileSpreadsheet,
-  BrainCircuit
+  BrainCircuit,
+  ArrowRightLeft,
+  ChevronRight,
+  LogOut,
+  Bell,
+  Target
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
 import CampaignWizard from './components/CampaignWizard';
 import AIAssistant from './components/AIAssistant';
 import TopUpModal from './components/TopUpModal';
 import SmartCampaignTable from './components/SmartCampaignTable';
 import ReportingView from './components/ReportingView';
+import BudgetAllocationModal from './components/BudgetAllocationModal';
+import PlanningView from './components/PlanningView'; // Import the new view
 import { AIMonitorWidget } from './components/AIMonitorWidget';
-import { Campaign, CampaignFormData, Transaction, PlatformId } from './types';
+import { Campaign, CampaignFormData, Transaction } from './types';
 
 // Mock Data
 const MOCK_CAMPAIGNS: Campaign[] = [
@@ -114,10 +118,11 @@ const DATA_STATS = [
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'campaigns' | 'adgroups' | 'ads' | 'wallet' | 'settings' | 'reporting'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'campaigns' | 'adgroups' | 'ads' | 'wallet' | 'settings' | 'reporting' | 'planning'>('dashboard');
   const [campaigns, setCampaigns] = useState<Campaign[]>(MOCK_CAMPAIGNS);
   const [showWizard, setShowWizard] = useState(false);
   const [showTopUp, setShowTopUp] = useState(false);
+  const [showAllocation, setShowAllocation] = useState(false);
   const [balance, setBalance] = useState(15450000);
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   
@@ -181,8 +186,17 @@ function App() {
     setCampaigns(campaigns.map(c => c.id === updated.id ? updated : c));
   };
 
+  const handleApplyAllocation = (allocations: { id: string, budget: number }[]) => {
+    setCampaigns(prev => prev.map(c => {
+      const alloc = allocations.find(a => a.id === c.id);
+      return alloc ? { ...c, budget: alloc.budget } : c;
+    }));
+    setShowAllocation(false);
+    setAiTriggerMessage("Hệ thống đã phân bổ lại ngân sách thành công dựa trên đề xuất của AI.");
+    setAiOpen(true);
+  };
+
   const handleToggleStatus = (id: string, type: string, parentId?: string) => {
-    console.log(`Toggle status for ${type} ${id}`);
     if (type === 'campaign') {
          setCampaigns(campaigns.map(c => c.id === id ? { ...c, status: c.status === 'active' ? 'paused' : 'active' } : c));
     }
@@ -193,270 +207,219 @@ function App() {
      setAiOpen(true);
   };
 
+  const SidebarItem = ({ id, icon: Icon, label, active }: { id: string, icon: any, label: string, active: boolean }) => (
+    <button 
+      onClick={() => setActiveTab(id as any)}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium mb-1 group relative ${
+        active 
+          ? 'bg-indigo-50 text-indigo-700 shadow-sm' 
+          : 'text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm'
+      }`}
+    >
+      {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-indigo-600 rounded-r-full"></div>}
+      <Icon size={20} className={`transition-colors ${active ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+      <span>{label}</span>
+      {id === 'campaigns' && <span className="ml-auto bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{campaigns.length}</span>}
+    </button>
+  );
+
   // ----- RENDER FUNCTIONS -----
 
   const renderDashboard = () => (
     <div className="space-y-6 animate-fade-in">
+      {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Số dư ví', value: `${balance.toLocaleString()} đ`, change: '+Nạp ngay', icon: Wallet, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-          { label: 'Chi tiêu tháng này', value: '4.500.000 đ', change: '+12%', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Tổng hiển thị', value: '195k', change: '-2%', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'CTR Trung bình', value: '2.8%', change: '+0.4%', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-          // New metrics rows
-          { label: 'Chuyển đổi', value: '154', change: '+15%', icon: ShoppingBag, color: 'text-orange-600', bg: 'bg-orange-50' },
-          { label: 'Doanh thu', value: '45.2tr đ', change: '+8%', icon: DollarSign, color: 'text-teal-600', bg: 'bg-teal-50' },
-          { label: 'ROAS', value: '3.8', change: '-0.1', icon: BarChart2, color: 'text-cyan-600', bg: 'bg-cyan-50' },
-          { label: 'AOV (TB đơn)', value: '450k đ', change: '+5%', icon: Activity, color: 'text-pink-600', bg: 'bg-pink-50' },
+          { label: 'Số dư ví', value: `${balance.toLocaleString()} đ`, change: '+Nạp ngay', icon: Wallet, color: 'text-white', bg: 'bg-gradient-to-br from-indigo-500 to-purple-600', isPrimary: true },
+          { label: 'Chi tiêu tháng này', value: '4.500.000 đ', change: '+12%', icon: CreditCard, color: 'text-blue-600', bg: 'bg-white' },
+          { label: 'Tổng hiển thị', value: '195k', change: '-2%', icon: Users, color: 'text-purple-600', bg: 'bg-white' },
+          { label: 'Doanh thu (GMV)', value: '45.2tr đ', change: '+8%', icon: DollarSign, color: 'text-teal-600', bg: 'bg-white' },
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
-            <div>
-              <p className="text-sm text-gray-500 font-medium mb-1">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
-              <span className={`text-xs font-semibold ${stat.label === 'Số dư ví' ? 'text-indigo-600 cursor-pointer hover:underline' : stat.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`} onClick={stat.label === 'Số dư ví' ? () => setShowTopUp(true) : undefined}>
-                {stat.change}
-              </span>
+          <div key={i} className={`${stat.bg} p-6 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-gray-100/50 hover:shadow-lg transition-all duration-300 relative overflow-hidden group`}>
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-4">
+                <div className={`p-2.5 rounded-xl ${stat.isPrimary ? 'bg-white/20' : 'bg-gray-50'}`}>
+                  <stat.icon size={22} className={stat.color} />
+                </div>
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${stat.isPrimary ? 'bg-white/20 text-white' : stat.change.startsWith('+') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                  {stat.change}
+                </span>
+              </div>
+              <div>
+                <p className={`text-sm font-medium mb-1 ${stat.isPrimary ? 'text-indigo-100' : 'text-gray-500'}`}>{stat.label}</p>
+                <h3 className={`text-2xl font-bold ${stat.isPrimary ? 'text-white' : 'text-gray-900'}`}>{stat.value}</h3>
+              </div>
             </div>
-            <div className={`p-3 rounded-xl ${stat.bg} ${stat.color}`}>
-              <stat.icon size={24} />
-            </div>
+            {stat.isPrimary && (
+                 <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+            )}
+             {stat.label === 'Số dư ví' && (
+                 <button onClick={() => setShowTopUp(true)} className="absolute inset-0 w-full h-full z-20 cursor-pointer"></button>
+             )}
           </div>
         ))}
       </div>
 
-      {/* Inserted AI Monitor Widget with fix handler */}
       <AIMonitorWidget onFixIssue={handleFixIssue} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-gray-100">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-gray-800">Hiệu suất tổng quan</h3>
-            <select className="bg-gray-50 border border-gray-200 rounded-lg text-sm p-2 outline-none">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Hiệu suất tổng quan</h3>
+              <p className="text-xs text-gray-500">So sánh Click và Chi tiêu theo thời gian</p>
+            </div>
+            <select className="bg-gray-50 border border-gray-200 rounded-lg text-sm p-2 outline-none font-medium text-gray-600">
               <option>7 ngày qua</option>
               <option>30 ngày qua</option>
             </select>
           </div>
-          <div className="h-72">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={DATA_STATS}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} />
-                <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} />
-                <Line type="monotone" dataKey="clicks" stroke="#4f46e5" strokeWidth={3} dot={{r: 4, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff'}} />
+              <AreaChart data={DATA_STATS}>
+                <defs>
+                  <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                <Tooltip 
+                    contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
+                    cursor={{stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4'}}
+                />
+                <Area type="monotone" dataKey="clicks" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorClicks)" />
                 <Line type="monotone" dataKey="spend" stroke="#e11d48" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <div className="bg-white p-6 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Phân bổ ngân sách</h3>
-          <div className="flex-1 flex items-center justify-center">
-             {/* Mock Pie Chart Representation */}
-             <div className="relative w-48 h-48 rounded-full border-[16px] border-indigo-100 border-l-indigo-600 border-t-purple-500 border-r-blue-400">
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                   <span className="text-2xl font-bold text-gray-800">8.5tr</span>
-                   <span className="text-xs text-gray-500">Tổng chi tiêu</span>
-                </div>
+          <div className="flex-1 flex items-center justify-center relative">
+             <div className="relative w-56 h-56 rounded-full border-[24px] border-indigo-50 border-l-indigo-600 border-t-purple-500 border-r-cyan-400 transform rotate-45 transition-all hover:scale-105">
              </div>
+             <div className="absolute inset-0 flex flex-col items-center justify-center">
+                   <span className="text-3xl font-bold text-gray-800">8.5tr</span>
+                   <span className="text-xs text-gray-500 font-medium">Tổng chi tiêu</span>
+            </div>
           </div>
-          <div className="space-y-3 mt-4">
-             <div className="flex justify-between text-sm"><span className="flex items-center gap-2"><div className="w-3 h-3 bg-purple-500 rounded-full"></div> Facebook</span> <span className="font-semibold">45%</span></div>
-             <div className="flex justify-between text-sm"><span className="flex items-center gap-2"><div className="w-3 h-3 bg-indigo-600 rounded-full"></div> Google</span> <span className="font-semibold">30%</span></div>
-             <div className="flex justify-between text-sm"><span className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-400 rounded-full"></div> Tiktok</span> <span className="font-semibold">25%</span></div>
+          <div className="space-y-4 mt-6">
+             {[
+                 { label: 'Facebook Ads', color: 'bg-indigo-600', val: '45%' },
+                 { label: 'Google Ads', color: 'bg-purple-500', val: '30%' },
+                 { label: 'TikTok Ads', color: 'bg-cyan-400', val: '25%' }
+             ].map((item, i) => (
+                 <div key={i} className="flex justify-between items-center text-sm group cursor-pointer">
+                    <span className="flex items-center gap-3 text-gray-600 font-medium group-hover:text-gray-900">
+                        <div className={`w-3 h-3 ${item.color} rounded-full`}></div> {item.label}
+                    </span> 
+                    <span className="font-bold text-gray-800">{item.val}</span>
+                 </div>
+             ))}
           </div>
         </div>
       </div>
     </div>
   );
 
-  const renderWallet = () => (
-    <div className="animate-fade-in space-y-6">
-       <div className="bg-gradient-to-r from-indigo-600 to-purple-700 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-16 -mt-16 pointer-events-none"></div>
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-             <div>
-                <p className="text-indigo-100 font-medium mb-1">Số dư khả dụng</p>
-                <h2 className="text-4xl font-bold">{balance.toLocaleString()} VNĐ</h2>
-                <p className="text-sm text-indigo-200 mt-2 flex items-center gap-2">
-                   <CreditCard size={16} /> **** **** **** 4289
-                </p>
-             </div>
-             <button 
-               onClick={() => setShowTopUp(true)}
-               className="bg-white text-indigo-700 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 shadow-md transition-transform hover:scale-105 flex items-center gap-2"
-             >
-                <Plus size={20} /> Nạp tiền ngay
-             </button>
-          </div>
-       </div>
-
-       <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-             <h3 className="text-lg font-bold text-gray-800">Lịch sử giao dịch</h3>
-          </div>
-          <table className="w-full text-left">
-             <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
-                <tr>
-                   <th className="p-4">Mã GD</th>
-                   <th className="p-4">Ngày</th>
-                   <th className="p-4">Loại</th>
-                   <th className="p-4">Phương thức</th>
-                   <th className="p-4">Số tiền</th>
-                   <th className="p-4 text-right">Trạng thái</th>
-                </tr>
-             </thead>
-             <tbody className="divide-y divide-gray-100">
-                {transactions.map(tx => (
-                   <tr key={tx.id} className="hover:bg-gray-50">
-                      <td className="p-4 font-mono text-sm text-gray-600">{tx.id}</td>
-                      <td className="p-4 text-sm text-gray-700">{tx.date}</td>
-                      <td className="p-4">
-                         <span className={`text-xs px-2 py-1 rounded-md font-medium ${tx.type === 'deposit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {tx.type === 'deposit' ? 'Nạp tiền' : 'Chi tiêu'}
-                         </span>
-                      </td>
-                      <td className="p-4 text-sm text-gray-600">{tx.method || '-'}</td>
-                      <td className={`p-4 font-medium ${tx.type === 'deposit' ? 'text-green-600' : 'text-gray-900'}`}>
-                         {tx.type === 'deposit' ? '+' : '-'}{tx.amount.toLocaleString()} đ
-                      </td>
-                      <td className="p-4 text-right">
-                         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Hoàn thành</span>
-                      </td>
-                   </tr>
-                ))}
-             </tbody>
-          </table>
-       </div>
-    </div>
-  );
-
   return (
-    <div className="flex h-screen bg-[#f8f9fc] font-sans text-gray-900">
+    <div className="flex h-screen bg-[#F8FAFC] font-sans text-gray-900 selection:bg-indigo-100 selection:text-indigo-700">
       
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col fixed h-full z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-        <div className="h-16 flex items-center px-6 border-b border-gray-100">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg mr-3 shadow-indigo-200 shadow-lg shrink-0">
-             <BrainCircuit size={20} />
+      <aside className="w-72 bg-white border-r border-gray-100 flex flex-col fixed h-full z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+        <div className="h-20 flex items-center px-8 border-b border-gray-50/50">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-indigo-200 shadow-lg shrink-0">
+             <BrainCircuit size={24} />
           </div>
-          <div className="flex flex-col">
-             <span className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-1">
-               TN<span className="text-blue-600"> Manager Hub</span>
-             </span>
+          <div className="flex flex-col ml-3">
+             <span className="text-xl font-bold text-gray-900 tracking-tight leading-none">TN Hub</span>
+             <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">Manager</span>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-          <div className="px-3 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-2">Quản lý</div>
-          <button 
-            onClick={() => setActiveTab('dashboard')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              activeTab === 'dashboard' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
-          >
-            <LayoutDashboard size={18} /> Tổng quan
-          </button>
-          <button 
-            onClick={() => setActiveTab('campaigns')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              activeTab === 'campaigns' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
-          >
-            <Layers size={18} /> Chiến dịch
-          </button>
-          
-          {/* Split Menu Items */}
-          <button 
-            onClick={() => setActiveTab('adgroups')} 
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              activeTab === 'adgroups' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
-          >
-            <Folder size={18} /> Nhóm quảng cáo
-          </button>
-          <button 
-            onClick={() => setActiveTab('ads')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              activeTab === 'ads' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
-          >
-            <FileImage size={18} /> Quảng cáo (Ads)
-          </button>
+        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8 scrollbar-hide">
+          <div>
+            <div className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Tổng quan</div>
+            <SidebarItem id="dashboard" icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} />
+            <SidebarItem id="campaigns" icon={Layers} label="Chiến dịch" active={activeTab === 'campaigns'} />
+            <SidebarItem id="adgroups" icon={Folder} label="Nhóm quảng cáo" active={activeTab === 'adgroups'} />
+            <SidebarItem id="ads" icon={FileImage} label="Quảng cáo (Ads)" active={activeTab === 'ads'} />
+          </div>
 
-          <div className="px-3 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-6">Tài chính & Công cụ</div>
-          <button 
-            onClick={() => setActiveTab('wallet')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              activeTab === 'wallet' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
-          >
-            <Wallet size={18} /> Nạp tiền & Ví
-          </button>
-          <button 
-            onClick={() => setActiveTab('reporting')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              activeTab === 'reporting' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
-          >
-            <FileSpreadsheet size={18} /> Báo cáo & Xuất dữ liệu
-          </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
-             <Calendar size={18} /> Lập kế hoạch
-          </button>
+          <div>
+             <div className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Công cụ</div>
+             <SidebarItem id="planning" icon={Target} label="Lập kế hoạch AI" active={activeTab === 'planning'} />
+             <SidebarItem id="reporting" icon={FileSpreadsheet} label="Báo cáo" active={activeTab === 'reporting'} />
+          </div>
 
-          <div className="px-3 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-6">Hệ thống</div>
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
-            <Settings size={18} /> Cài đặt tài khoản
-          </button>
+          <div>
+            <div className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Tài chính</div>
+            <SidebarItem id="wallet" icon={Wallet} label="Ví & Thanh toán" active={activeTab === 'wallet'} />
+          </div>
         </div>
 
-        <div className="p-4 border-t border-gray-200">
-           <button className="flex items-center gap-3 w-full p-2 hover:bg-gray-50 rounded-lg transition-colors">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">AD</div>
-              <div className="text-left">
-                 <div className="text-sm font-bold text-gray-800">Admin User</div>
-                 <div className="text-xs text-gray-500">Premium Plan</div>
+        {/* User Profile */}
+        <div className="p-4 mx-4 mb-4 bg-gray-50 rounded-2xl border border-gray-100">
+           <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm border-2 border-white shadow-sm">
+                AD
               </div>
-              <MoreVertical size={16} className="ml-auto text-gray-400" />
-           </button>
+              <div className="overflow-hidden">
+                 <div className="text-sm font-bold text-gray-900 truncate">Admin User</div>
+                 <div className="text-xs text-green-600 font-medium flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> Online
+                 </div>
+              </div>
+              <button className="ml-auto text-gray-400 hover:text-red-500 transition-colors">
+                  <LogOut size={16} />
+              </button>
+           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-64 p-8 overflow-y-auto h-full">
-        <header className="flex justify-between items-end mb-8">
+      <main className="flex-1 ml-72 p-8 overflow-y-auto h-full">
+        <header className="flex justify-between items-center mb-10 sticky top-0 z-10 py-2 bg-[#F8FAFC]/90 backdrop-blur-sm">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+               <span>Pages</span>
+               <ChevronRight size={12} />
+               <span className="font-medium text-gray-800 capitalize">{activeTab}</span>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
               {activeTab === 'dashboard' ? 'Tổng quan tài khoản' : 
                activeTab === 'campaigns' ? 'Quản lý chiến dịch' : 
-               activeTab === 'adgroups' ? 'Quản lý nhóm quảng cáo' :
-               activeTab === 'ads' ? 'Quản lý quảng cáo' :
-               activeTab === 'wallet' ? 'Ví & Thanh toán' :
-               activeTab === 'reporting' ? 'Báo cáo & Xuất dữ liệu' :
-               'Cài đặt'}
+               activeTab === 'adgroups' ? 'Nhóm quảng cáo' :
+               activeTab === 'ads' ? 'Creative & Ads' :
+               activeTab === 'wallet' ? 'Ví & Billing' :
+               activeTab === 'planning' ? 'Planning & Dự báo' :
+               'Báo cáo hiệu suất'}
             </h1>
-            <p className="text-gray-500 mt-1 text-sm">Cập nhật lúc: {new Date().toLocaleTimeString()} • <span className="text-green-600 font-medium cursor-pointer">Làm mới dữ liệu</span></p>
           </div>
-          <div className="flex gap-3">
-             <div className="bg-white border border-gray-200 text-gray-700 px-3 py-2.5 rounded-xl font-medium shadow-sm flex items-center gap-2">
-                <Calendar size={18} className="text-gray-500" />
-                <select className="bg-transparent outline-none text-sm cursor-pointer">
-                   <option>7 ngày qua</option>
-                   <option>30 ngày qua</option>
-                   <option>Tháng này</option>
-                   <option>Tháng trước</option>
-                </select>
-             </div>
-             <button className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-medium shadow-sm hover:bg-gray-50 flex items-center gap-2 transition-all">
-                <HelpCircle size={18} /> Hướng dẫn
+          <div className="flex items-center gap-3">
+             {activeTab === 'campaigns' && (
+                <button 
+                  onClick={() => setShowAllocation(true)}
+                  className="bg-white border border-indigo-100 text-indigo-700 px-4 py-2.5 rounded-xl font-bold shadow-[0_2px_8px_rgba(99,102,241,0.15)] hover:bg-indigo-50 flex items-center gap-2 transition-all hover:-translate-y-0.5"
+                >
+                  <ArrowRightLeft size={18} /> <span className="hidden md:inline">Phân bổ ngân sách AI</span>
+                </button>
+             )}
+             
+             <button className="w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-all relative">
+                <Bell size={20} />
+                <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
              </button>
+
              <button 
                onClick={() => setShowWizard(true)}
-               className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-indigo-200 flex items-center gap-2 transition-all hover:translate-y-[-1px]"
+               className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-[0_4px_14px_rgba(79,70,229,0.3)] flex items-center gap-2 transition-all hover:translate-y-[-1px] active:scale-95"
              >
-               <Plus size={20} /> Tạo chiến dịch
+               <Plus size={20} /> <span className="hidden md:inline">Tạo mới</span>
              </button>
           </div>
         </header>
@@ -465,10 +428,6 @@ function App() {
         
         {(activeTab === 'campaigns' || activeTab === 'adgroups' || activeTab === 'ads') && (
           <div className="animate-fade-in flex flex-col h-full">
-             <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 text-sm text-blue-700 flex items-start gap-2">
-                 <div className="mt-0.5"><Layers size={16} /></div>
-                 <p>Sử dụng trình quản lý bên dưới để xem và chỉnh sửa {activeTab === 'campaigns' ? 'chiến dịch' : activeTab === 'adgroups' ? 'nhóm quảng cáo' : 'mẫu quảng cáo'} của bạn. Bạn có thể sử dụng AI để tối ưu hóa nhanh.</p>
-             </div>
              <SmartCampaignTable 
                 campaigns={campaigns}
                 onUpdateCampaign={handleUpdateCampaign}
@@ -479,11 +438,12 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'wallet' && renderWallet()}
+        {activeTab === 'wallet' && <div className="animate-fade-in"><TopUpModal onClose={() => setShowTopUp(false)} onConfirm={handleTopUp} /></div>} 
         {activeTab === 'reporting' && <ReportingView campaigns={campaigns} />}
+        {activeTab === 'planning' && <PlanningView />}
       </main>
 
-      {/* Campaign Creation Wizard Modal */}
+      {/* Modals */}
       {showWizard && (
         <CampaignWizard 
           onClose={() => setShowWizard(false)}
@@ -491,7 +451,6 @@ function App() {
         />
       )}
       
-      {/* Top Up Modal */}
       {showTopUp && (
         <TopUpModal 
           onClose={() => setShowTopUp(false)}
@@ -499,7 +458,15 @@ function App() {
         />
       )}
 
-      {/* Floating AI Agent - Controlled */}
+      {showAllocation && (
+        <BudgetAllocationModal 
+          campaigns={campaigns}
+          onClose={() => setShowAllocation(false)}
+          onApply={handleApplyAllocation}
+        />
+      )}
+
+      {/* Floating AI Agent */}
       <AIAssistant 
          isOpen={aiOpen} 
          onToggle={setAiOpen} 
