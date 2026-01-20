@@ -13,7 +13,14 @@ import {
   Loader2,
   ShoppingBag,
   Users,
-  MousePointer2
+  MousePointer2,
+  MapPin,
+  Target,
+  Globe,
+  LayoutTemplate,
+  Type,
+  ImageIcon,
+  Sparkles
 } from 'lucide-react';
 
 interface CampaignWizardProps {
@@ -41,6 +48,18 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onClose, onSave }) => {
 
   const handleInputChange = (field: keyof CampaignFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Remove non-digit characters to get raw number
+    const rawValue = e.target.value.replace(/,/g, '');
+    if (!isNaN(Number(rawValue))) {
+        handleInputChange('dailyBudget', Number(rawValue));
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+      return value.toLocaleString('en-US');
   };
 
   const handleAIGenerate = async () => {
@@ -146,10 +165,11 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onClose, onSave }) => {
         <label className="text-sm font-semibold text-gray-700">Ngân sách hàng ngày</label>
         <div className="relative">
              <input 
-                type="number" 
-                value={formData.dailyBudget}
-                onChange={(e) => handleInputChange('dailyBudget', parseInt(e.target.value))}
+                type="text" 
+                value={formatCurrency(formData.dailyBudget)}
+                onChange={handleBudgetChange}
                 className="w-full p-4 pl-4 pr-12 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg"
+                placeholder="Nhập số tiền..."
              />
              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">VNĐ</span>
         </div>
@@ -169,82 +189,124 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onClose, onSave }) => {
   );
 
   const renderStep3_AI_Targeting = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-gray-800">Targeting & Creative (AI)</h3>
-        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-bold flex items-center gap-1">
-          <Wand2 size={12} /> Powered by Gemini
+    <div className="space-y-6 h-full flex flex-col">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-xl font-bold text-gray-800">Tối ưu hóa bởi AI</h3>
+        <span className="text-xs bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1 rounded-full font-bold flex items-center gap-1 shadow-md">
+          <Wand2 size={12} /> Gemini Powered
         </span>
       </div>
 
-      <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 space-y-3">
-        <label className="text-sm font-bold text-purple-900">Mô tả sản phẩm của bạn để AI tự động điền:</label>
+      {/* AI Prompt Section */}
+      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-5 rounded-xl border border-indigo-100 shadow-sm space-y-3">
+        <label className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+             <Sparkles size={16} className="text-indigo-600" />
+             Mô tả sản phẩm để AI thiết lập tự động:
+        </label>
         <div className="flex gap-2">
           <input 
             type="text" 
             value={productDesc}
             onChange={(e) => setProductDesc(e.target.value)}
-            placeholder="Ví dụ: Giày thể thao nam siêu nhẹ, thoáng khí..."
-            className="flex-1 p-3 bg-[#333333] text-white border-none rounded-xl focus:ring-2 focus:ring-purple-500 placeholder-gray-500"
+            placeholder="VD: Kem dưỡng da chống lão hóa, thành phần tự nhiên..."
+            className="flex-1 p-3 bg-white text-gray-900 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none shadow-sm placeholder-gray-400"
           />
           <button 
             onClick={handleAIGenerate}
             disabled={isGenerating || !productDesc}
-            className="bg-[#C084FC] text-white px-5 py-2 rounded-xl hover:bg-purple-500 disabled:opacity-50 flex items-center gap-2 font-medium shadow-md transition-all"
+            className="bg-indigo-600 text-white px-6 py-2 rounded-xl hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2 font-bold shadow-md shadow-indigo-200 transition-all hover:-translate-y-0.5"
           >
             {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Wand2 size={18} />}
-            Tạo
+            Tạo Magic
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm text-gray-600">Độ tuổi</label>
-          <input 
-            value={formData.targetAge}
-            onChange={(e) => handleInputChange('targetAge', e.target.value)}
-            className="w-full p-3 bg-[#333333] text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-gray-600">Vị trí</label>
-          <input 
-            value={formData.targetLocation}
-            onChange={(e) => handleInputChange('targetLocation', e.target.value)}
-            className="w-full p-3 bg-[#333333] text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
+        
+        {/* Left Column: Targeting */}
+        <div className="space-y-4 bg-white p-5 border border-gray-200 rounded-2xl shadow-sm">
+            <h4 className="font-bold text-gray-800 flex items-center gap-2 pb-2 border-b border-gray-100">
+                <Target size={18} className="text-blue-600" /> Nhắm mục tiêu (Targeting)
+            </h4>
+            
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-600 flex items-center gap-1"><Users size={12} /> Độ tuổi</label>
+                <input 
+                    value={formData.targetAge}
+                    onChange={(e) => handleInputChange('targetAge', e.target.value)}
+                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+                    placeholder="VD: 18-35"
+                />
+                </div>
+                <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-600 flex items-center gap-1"><MapPin size={12} /> Vị trí</label>
+                <input 
+                    value={formData.targetLocation}
+                    onChange={(e) => handleInputChange('targetLocation', e.target.value)}
+                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+                    placeholder="VD: Ho Chi Minh"
+                />
+                </div>
+            </div>
 
-      <div className="space-y-2">
-        <label className="text-sm text-gray-600">Sở thích / Hành vi</label>
-        <textarea 
-          value={formData.targetInterests}
-          onChange={(e) => handleInputChange('targetInterests', e.target.value)}
-          className="w-full p-3 bg-[#333333] text-white border-none rounded-lg h-24 resize-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="AI sẽ gợi ý các sở thích phù hợp..."
-        />
-      </div>
-
-      <div className="border-t pt-4 space-y-3">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Tiêu đề quảng cáo</label>
-          <input 
-            value={formData.adHeadline}
-            onChange={(e) => handleInputChange('adHeadline', e.target.value)}
-            className="w-full p-3 bg-[#333333] text-white border-none rounded-lg font-bold focus:ring-2 focus:ring-indigo-500"
-            placeholder="Tiêu đề thu hút..."
-          />
+            <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-600 flex items-center gap-1"><Globe size={12} /> Sở thích & Hành vi</label>
+                <textarea 
+                value={formData.targetInterests}
+                onChange={(e) => handleInputChange('targetInterests', e.target.value)}
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg h-32 resize-none focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                placeholder="AI sẽ tự động điền các sở thích phù hợp..."
+                />
+            </div>
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Nội dung quảng cáo</label>
-          <textarea 
-            value={formData.adContent}
-            onChange={(e) => handleInputChange('adContent', e.target.value)}
-            className="w-full p-3 bg-[#333333] text-white border-none rounded-lg h-24 resize-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="Nội dung chính..."
-          />
+
+        {/* Right Column: Creative & Preview */}
+        <div className="space-y-4">
+            <div className="bg-white p-5 border border-gray-200 rounded-2xl shadow-sm space-y-4">
+                 <h4 className="font-bold text-gray-800 flex items-center gap-2 pb-2 border-b border-gray-100">
+                    <LayoutTemplate size={18} className="text-purple-600" /> Nội dung quảng cáo
+                </h4>
+                
+                <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-600 flex items-center gap-1"><Type size={12} /> Tiêu đề (Headline)</label>
+                    <input 
+                        value={formData.adHeadline}
+                        onChange={(e) => handleInputChange('adHeadline', e.target.value)}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none font-bold text-sm"
+                        placeholder="Tiêu đề thu hút..."
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-600 flex items-center gap-1"><LayoutTemplate size={12} /> Nội dung (Primary Text)</label>
+                    <textarea 
+                        value={formData.adContent}
+                        onChange={(e) => handleInputChange('adContent', e.target.value)}
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg h-24 resize-none focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+                        placeholder="Nội dung chính..."
+                    />
+                </div>
+            </div>
+
+            {/* Live Preview Card (Simplified) */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm opacity-90">
+                <div className="text-[10px] uppercase font-bold text-gray-400 mb-2">Xem trước quảng cáo</div>
+                <div className="flex gap-3">
+                     <div className="w-10 h-10 bg-gray-200 rounded-full shrink-0"></div>
+                     <div className="flex-1 space-y-2">
+                          <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                          <div className="text-xs text-gray-800 line-clamp-2">{formData.adContent || "Nội dung quảng cáo sẽ hiển thị ở đây..."}</div>
+                          <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+                               <ImageIcon size={24} />
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded border border-gray-100 flex justify-between items-center">
+                              <div className="text-xs font-bold text-gray-900">{formData.adHeadline || "Tiêu đề quảng cáo"}</div>
+                              <div className="px-2 py-1 bg-gray-200 text-[10px] font-bold text-gray-600 rounded">MUA NGAY</div>
+                          </div>
+                     </div>
+                </div>
+            </div>
         </div>
       </div>
     </div>
@@ -252,31 +314,38 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b flex justify-between items-center">
+        <div className="p-6 border-b flex justify-between items-center shrink-0">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Tạo Chiến Dịch Mới</h2>
-            <p className="text-sm text-gray-500">Bước {step} / 3</p>
+            <div className="flex items-center gap-2 mt-1">
+                 <div className={`h-1.5 w-8 rounded-full ${step >= 1 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+                 <div className={`h-1.5 w-8 rounded-full ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+                 <div className={`h-1.5 w-8 rounded-full ${step >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+                 <span className="text-sm text-gray-500 ml-2">Bước {step} / 3</span>
+            </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors">
             ✕
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">
-          {step === 1 && renderStep1_Platform()}
-          {step === 2 && renderStep2_Objective()}
-          {step === 3 && renderStep3_AI_Targeting()}
+        <div className="p-6 overflow-y-auto flex-1 bg-[#F8FAFC]">
+          <div className="max-w-3xl mx-auto h-full">
+            {step === 1 && renderStep1_Platform()}
+            {step === 2 && renderStep2_Objective()}
+            {step === 3 && renderStep3_AI_Targeting()}
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-between">
+        <div className="p-6 border-t bg-white flex justify-between shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <button 
             onClick={() => setStep(s => Math.max(1, s - 1))}
             disabled={step === 1}
-            className="px-6 py-2 rounded-lg text-gray-600 font-medium hover:bg-gray-200 disabled:opacity-0 transition-all flex items-center gap-2"
+            className="px-6 py-2.5 rounded-xl text-gray-600 font-bold hover:bg-gray-100 disabled:opacity-0 transition-all flex items-center gap-2"
           >
             <ArrowLeft size={18} /> Quay lại
           </button>
@@ -284,14 +353,14 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onClose, onSave }) => {
           {step < 3 ? (
             <button 
               onClick={() => setStep(s => Math.min(3, s + 1))}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center gap-2"
+              className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200"
             >
               Tiếp tục <ArrowRight size={18} />
             </button>
           ) : (
             <button 
               onClick={() => onSave(formData)}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all flex items-center gap-2"
+              className="px-8 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all flex items-center gap-2 shadow-lg shadow-green-200"
             >
               <CheckCircle size={18} /> Hoàn tất & Đăng
             </button>

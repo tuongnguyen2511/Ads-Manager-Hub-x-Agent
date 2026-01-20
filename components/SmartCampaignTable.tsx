@@ -18,7 +18,8 @@ import {
   Save,
   X,
   Loader2,
-  Coins
+  Coins,
+  Target
 } from 'lucide-react';
 import { optimizeBudgetAI, optimizeTargetingAI, optimizeCreativeAI } from '../services/geminiService';
 
@@ -72,6 +73,19 @@ const SmartCampaignTable: React.FC<SmartCampaignTableProps> = ({
 
   const getCurrentCampaign = () => campaigns.find(c => c.id === selectedCampaignId);
   const getCurrentAdGroup = () => getCurrentCampaign()?.adGroups?.find(ag => ag.id === selectedAdGroupId);
+
+  // --- Helpers ---
+  const formatCurrency = (val: number) => {
+    return val.toLocaleString('en-US');
+  };
+
+  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!editingItem) return;
+      const rawValue = e.target.value.replace(/,/g, '');
+      if (!isNaN(Number(rawValue))) {
+          setEditingItem({...editingItem, data: {...editingItem.data, budget: Number(rawValue)}});
+      }
+  };
 
   // --- AI Actions ---
   const handleAiOptimize = async () => {
@@ -186,6 +200,8 @@ const SmartCampaignTable: React.FC<SmartCampaignTableProps> = ({
     };
     return <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${styles[p]}`}>{p}</span>
   };
+
+  const editingCampaign = editingItem ? campaigns.find(c => c.id === editingItem.id) : null;
 
   return (
     <div className="space-y-4">
@@ -372,12 +388,24 @@ const SmartCampaignTable: React.FC<SmartCampaignTableProps> = ({
               {/* Form Fields */}
               {editingItem.type === 'budget' && (
                 <div className="space-y-4">
+                   {editingCampaign && (
+                     <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 flex items-start gap-3">
+                        <div className="bg-blue-100 p-1.5 rounded-lg text-blue-600 mt-0.5">
+                           <Target size={16} />
+                        </div>
+                        <div>
+                           <div className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-0.5">Mục tiêu hiện tại</div>
+                           <div className="font-bold text-gray-800">{editingCampaign.objective}</div>
+                           <div className="text-[10px] text-blue-500 mt-1">AI sẽ phân tích hiệu quả dựa trên mục tiêu này.</div>
+                        </div>
+                     </div>
+                   )}
                    <div>
                        <label className="block text-sm font-medium text-gray-700 mb-1">Ngân sách (VNĐ)</label>
                        <input 
-                         type="number" 
-                         value={editingItem.data.budget} 
-                         onChange={(e) => setEditingItem({...editingItem, data: {...editingItem.data, budget: parseInt(e.target.value)}})}
+                         type="text" 
+                         value={formatCurrency(editingItem.data.budget)}
+                         onChange={handleBudgetChange}
                          className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                        />
                    </div>

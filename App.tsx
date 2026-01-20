@@ -18,7 +18,8 @@ import {
   DollarSign,
   BarChart2,
   Activity,
-  FileSpreadsheet
+  FileSpreadsheet,
+  BrainCircuit
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import CampaignWizard from './components/CampaignWizard';
@@ -337,10 +338,12 @@ function App() {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col fixed h-full z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
         <div className="h-16 flex items-center px-6 border-b border-gray-100">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg mr-3 shadow-indigo-200 shadow-lg shrink-0">T</div>
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg mr-3 shadow-indigo-200 shadow-lg shrink-0">
+             <BrainCircuit size={20} />
+          </div>
           <div className="flex flex-col">
              <span className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-1">
-               TN-Ads<span className="text-blue-600"> Manager Hub</span>
+               TN<span className="text-blue-600"> Manager Hub</span>
              </span>
           </div>
         </div>
