@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CampaignFormData, PlatformId } from '../types';
-import { generateCampaignDraft } from '../services/geminiService';
+import { generateCampaignDraft, generateTargetingAlternatives } from '../services/geminiService';
 import { 
   Facebook, 
   Search, 
@@ -20,7 +20,9 @@ import {
   LayoutTemplate,
   Type,
   ImageIcon,
-  Sparkles
+  Sparkles,
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 
 interface CampaignWizardProps {
@@ -45,6 +47,8 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState<CampaignFormData>(initialData);
   const [productDesc, setProductDesc] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingAlts, setIsGeneratingAlts] = useState(false);
+  const [targetingAlternatives, setTargetingAlternatives] = useState<string[]>([]);
 
   const handleInputChange = (field: keyof CampaignFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -65,6 +69,7 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onClose, onSave }) => {
   const handleAIGenerate = async () => {
     if (!productDesc.trim()) return;
     setIsGenerating(true);
+    setTargetingAlternatives([]); // Reset alts on new main generate
     try {
       const draft = await generateCampaignDraft(productDesc, formData.platform);
       setFormData(prev => ({
@@ -76,6 +81,17 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onClose, onSave }) => {
       }));
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSuggestAlternatives = async () => {
+    if (!productDesc.trim()) return;
+    setIsGeneratingAlts(true);
+    try {
+      const alts = await generateTargetingAlternatives(productDesc, formData.platform);
+      setTargetingAlternatives(alts);
+    } finally {
+      setIsGeneratingAlts(false);
     }
   };
 
@@ -252,13 +268,43 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onClose, onSave }) => {
             </div>
 
             <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-600 flex items-center gap-1"><Globe size={12} /> Sở thích & Hành vi</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-xs font-semibold text-gray-600 flex items-center gap-1"><Globe size={12} /> Sở thích & Hành vi</label>
+                  <button 
+                    onClick={handleSuggestAlternatives}
+                    disabled={isGeneratingAlts || !productDesc}
+                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors disabled:opacity-30"
+                  >
+                    {isGeneratingAlts ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+                    Suggest Alternatives
+                  </button>
+                </div>
                 <textarea 
                 value={formData.targetInterests}
                 onChange={(e) => handleInputChange('targetInterests', e.target.value)}
                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg h-32 resize-none focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
                 placeholder="AI sẽ tự động điền các sở thích phù hợp..."
                 />
+
+                {/* Alternatives List */}
+                {targetingAlternatives.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                      <Zap size={10} className="text-yellow-500" /> AI Suggested Alternatives:
+                    </div>
+                    <div className="grid grid-cols-1 gap-1.5">
+                      {targetingAlternatives.map((alt, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleInputChange('targetInterests', alt)}
+                          className="text-[11px] text-left p-2 rounded-lg bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition-all text-indigo-700 line-clamp-1 italic"
+                        >
+                          {alt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
         </div>
 

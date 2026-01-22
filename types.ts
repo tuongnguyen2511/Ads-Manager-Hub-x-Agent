@@ -79,6 +79,7 @@ export interface ForecastMetric {
   impressions: number;
   conversions: number;
   cost: number;
+  [key: string]: any;
 }
 
 export interface ChannelForecast {
@@ -87,6 +88,7 @@ export interface ChannelForecast {
   estimatedCpc: number;
   estimatedConversionRate: number;
   suggestedBudget: number;
+  [key: string]: any;
 }
 
 export interface ForecastResult {

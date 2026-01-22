@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Minimize2, Maximize2, Sparkles, Zap, PieChart, Target, PenTool, Layers, Check } from 'lucide-react';
+import { Bot, Send, X, Minimize2, Maximize2, Sparkles, Zap, PieChart, Target, PenTool, Layers, Check, Palette } from 'lucide-react';
 import { chatWithAgent, suggestCampaignStructure } from '../services/geminiService';
 import { AIMessage } from '../types';
 
@@ -81,32 +81,37 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen: controlledOpen, onTog
 
   const quickActions = [
     { 
-      icon: <Layers size={16} />, 
+      icon: <Layers size={14} />, 
       label: "Cấu trúc (Max Conversion)", 
       action: () => handleStructureSuggestion('conversion')
     },
     { 
-      icon: <Layers size={16} />, 
+      icon: <Layers size={14} />, 
       label: "Cấu trúc (Max GMV)", 
       action: () => handleStructureSuggestion('gmv')
     },
     { 
-      icon: <Target size={16} />, 
+      icon: <Target size={14} />, 
       label: "Gợi ý Target", 
       prompt: "Hãy gợi ý chiến lược audience targeting cho sản phẩm thời trang nữ độ tuổi 20-30 trên Facebook." 
     },
     { 
-      icon: <PenTool size={16} />, 
+      icon: <PenTool size={14} />, 
       label: "Viết Content Ads", 
       prompt: "Viết 3 mẫu nội dung quảng cáo ngắn gọn, hấp dẫn cho chiến dịch giảm giá 50%." 
     },
     { 
-      icon: <PieChart size={16} />, 
+      icon: <Palette size={14} />, 
+      label: "Tối ưu Creative", 
+      prompt: "Tôi muốn làm mới hình ảnh và nội dung quảng cáo. Hãy gợi ý 3 ý tưởng creative mới lạ, bắt trend để tăng CTR." 
+    },
+    { 
+      icon: <PieChart size={14} />, 
       label: "Phân bổ Ngân sách", 
       prompt: "Tôi có 10 triệu VND. Hãy gợi ý cách phân bổ ngân sách giữa Facebook và TikTok để tối ưu chuyển đổi." 
     },
     { 
-      icon: <Zap size={16} />, 
+      icon: <Zap size={14} />, 
       label: "Phân tích Xu hướng", 
       prompt: "Hiện tại xu hướng quảng cáo nào đang hiệu quả nhất cho ngành bán lẻ?" 
     }
@@ -159,20 +164,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen: controlledOpen, onTog
 
       {!isMinimized && (
         <>
-          {/* Quick Actions Panel */}
-          <div className="bg-indigo-50 p-3 grid grid-cols-2 gap-2 border-b border-indigo-100 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-200">
-             {quickActions.map((action, idx) => (
-               <button
-                 key={idx}
-                 onClick={() => action.action ? action.action() : handleSend(action.prompt)}
-                 className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-indigo-100 shadow-sm text-xs font-medium text-indigo-800 hover:bg-indigo-100 hover:shadow-md transition-all text-left group"
-               >
-                 <span className="text-indigo-500 group-hover:scale-110 transition-transform">{action.icon}</span>
-                 <span className="truncate">{action.label}</span>
-               </button>
-             ))}
-          </div>
-
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50 scrollbar-thin scrollbar-thumb-gray-200">
             {messages.map((msg, idx) => (
@@ -201,8 +192,24 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen: controlledOpen, onTog
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Quick Actions Panel - Horizontal Scroll */}
+          <div className="bg-white border-t border-gray-100 p-2">
+             <div className="flex gap-2 overflow-x-auto pb-2 pt-1 px-1 scrollbar-hide snap-x">
+                 {quickActions.map((action, idx) => (
+                   <button
+                     key={idx}
+                     onClick={() => action.action ? action.action() : handleSend(action.prompt)}
+                     className="snap-start shrink-0 flex items-center gap-2 bg-indigo-50 px-3 py-2 rounded-full border border-indigo-100 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-200 transition-all whitespace-nowrap active:scale-95"
+                   >
+                     {action.icon}
+                     <span>{action.label}</span>
+                   </button>
+                 ))}
+             </div>
+          </div>
+
           {/* Input */}
-          <div className="p-3 border-t bg-white rounded-b-2xl">
+          <div className="p-3 bg-white rounded-b-2xl border-t border-gray-100">
             <div className="flex gap-2">
               <input
                 type="text"

@@ -21,7 +21,8 @@ import {
   ChevronRight,
   LogOut,
   Bell,
-  Target
+  Target,
+  Sparkles
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
 import CampaignWizard from './components/CampaignWizard';
@@ -29,8 +30,8 @@ import AIAssistant from './components/AIAssistant';
 import TopUpModal from './components/TopUpModal';
 import SmartCampaignTable from './components/SmartCampaignTable';
 import ReportingView from './components/ReportingView';
+import PlanningView from './components/PlanningView'; 
 import BudgetAllocationModal from './components/BudgetAllocationModal';
-import PlanningView from './components/PlanningView'; // Import the new view
 import { AIMonitorWidget } from './components/AIMonitorWidget';
 import { Campaign, CampaignFormData, Transaction } from './types';
 
@@ -122,11 +123,10 @@ function App() {
   const [campaigns, setCampaigns] = useState<Campaign[]>(MOCK_CAMPAIGNS);
   const [showWizard, setShowWizard] = useState(false);
   const [showTopUp, setShowTopUp] = useState(false);
-  const [showAllocation, setShowAllocation] = useState(false);
+  const [showBudgetAllocation, setShowBudgetAllocation] = useState(false);
   const [balance, setBalance] = useState(15450000);
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   
-  // AI Agent Control State
   const [aiOpen, setAiOpen] = useState(false);
   const [aiTriggerMessage, setAiTriggerMessage] = useState('');
 
@@ -186,14 +186,13 @@ function App() {
     setCampaigns(campaigns.map(c => c.id === updated.id ? updated : c));
   };
 
-  const handleApplyAllocation = (allocations: { id: string, budget: number }[]) => {
-    setCampaigns(prev => prev.map(c => {
-      const alloc = allocations.find(a => a.id === c.id);
-      return alloc ? { ...c, budget: alloc.budget } : c;
-    }));
-    setShowAllocation(false);
-    setAiTriggerMessage("Hệ thống đã phân bổ lại ngân sách thành công dựa trên đề xuất của AI.");
-    setAiOpen(true);
+  const handleApplyBudgets = (allocations: { id: string, budget: number }[]) => {
+      const updatedCampaigns = campaigns.map(c => {
+          const allocation = allocations.find(a => a.id === c.id);
+          return allocation ? { ...c, budget: allocation.budget } : c;
+      });
+      setCampaigns(updatedCampaigns);
+      setShowBudgetAllocation(false);
   };
 
   const handleToggleStatus = (id: string, type: string, parentId?: string) => {
@@ -223,11 +222,8 @@ function App() {
     </button>
   );
 
-  // ----- RENDER FUNCTIONS -----
-
   const renderDashboard = () => (
     <div className="space-y-6 animate-fade-in">
-      {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: 'Số dư ví', value: `${balance.toLocaleString()} đ`, change: '+Nạp ngay', icon: Wallet, color: 'text-white', bg: 'bg-gradient-to-br from-indigo-500 to-purple-600', isPrimary: true },
@@ -362,7 +358,6 @@ function App() {
           </div>
         </div>
 
-        {/* User Profile */}
         <div className="p-4 mx-4 mb-4 bg-gray-50 rounded-2xl border border-gray-100">
            <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm border-2 border-white shadow-sm">
@@ -381,7 +376,6 @@ function App() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 ml-72 p-8 overflow-y-auto h-full">
         <header className="flex justify-between items-center mb-10 sticky top-0 z-10 py-2 bg-[#F8FAFC]/90 backdrop-blur-sm">
           <div>
@@ -402,14 +396,14 @@ function App() {
           </div>
           <div className="flex items-center gap-3">
              {activeTab === 'campaigns' && (
-                <button 
-                  onClick={() => setShowAllocation(true)}
-                  className="bg-white border border-indigo-100 text-indigo-700 px-4 py-2.5 rounded-xl font-bold shadow-[0_2px_8px_rgba(99,102,241,0.15)] hover:bg-indigo-50 flex items-center gap-2 transition-all hover:-translate-y-0.5"
-                >
-                  <ArrowRightLeft size={18} /> <span className="hidden md:inline">Phân bổ ngân sách AI</span>
-                </button>
+                 <button 
+                    onClick={() => setShowBudgetAllocation(true)}
+                    className="bg-white border border-indigo-200 text-indigo-600 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all hover:bg-indigo-50 shadow-sm"
+                 >
+                    <ArrowRightLeft size={18} /> Tối ưu ngân sách AI
+                 </button>
              )}
-             
+
              <button className="w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-all relative">
                 <Bell size={20} />
                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
@@ -458,11 +452,11 @@ function App() {
         />
       )}
 
-      {showAllocation && (
+      {showBudgetAllocation && (
         <BudgetAllocationModal 
-          campaigns={campaigns}
-          onClose={() => setShowAllocation(false)}
-          onApply={handleApplyAllocation}
+           campaigns={campaigns}
+           onClose={() => setShowBudgetAllocation(false)}
+           onApply={handleApplyBudgets}
         />
       )}
 
