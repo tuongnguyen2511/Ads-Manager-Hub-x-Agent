@@ -13,6 +13,8 @@ export interface Ad {
   name: string;
   headline: string;
   content: string;
+  headlines?: string[]; // Cho Google Search RSA
+  descriptions?: string[]; // Cho Google Search RSA
   image?: string;
   status: 'active' | 'paused';
   impressions: number;
@@ -25,6 +27,7 @@ export interface AdGroup {
   name: string;
   status: 'active' | 'paused';
   targeting: string;
+  keywords?: string[]; // Từ khóa cho Google Search
   ads: Ad[];
 }
 
@@ -35,13 +38,13 @@ export interface Campaign {
   status: 'active' | 'paused' | 'draft';
   objective: string;
   budget: number;
-  biddingStrategy?: string; // New field for bidding
+  biddingStrategy?: string;
   spent: number;
   impressions: number;
   clicks: number;
   ctr: number;
   startDate: string;
-  adGroups?: AdGroup[]; // Added hierarchical data
+  adGroups?: AdGroup[];
 }
 
 export interface CampaignFormData {
@@ -52,6 +55,11 @@ export interface CampaignFormData {
   targetLocation: string;
   targetAge: string;
   targetInterests: string;
+  // Google Search specific
+  keywords: string[];
+  headlines: string[];
+  descriptions: string[];
+  // Generic
   adHeadline: string;
   adContent: string;
 }
@@ -70,8 +78,6 @@ export interface Transaction {
   method?: string;
   status: 'completed' | 'pending' | 'failed';
 }
-
-// --- Planning & Forecast Types ---
 
 export interface ForecastMetric {
   date: string;

@@ -9,9 +9,19 @@ interface ReportingViewProps {
 
 const ReportingView: React.FC<ReportingViewProps> = ({ campaigns }) => {
   const [reportType, setReportType] = useState('campaign');
-  const [dateRange, setDateRange] = useState('last_30_days');
   const [isAuditing, setIsAuditing] = useState(false);
-  const [auditResult, setAuditResult] = useState<{ overallScore: number, summary: string, recommendations: string[] } | null>(null);
+  const [metricView, setMetricView] = useState<'overall' | 'CTR' | 'CPC' | 'Conversion' | 'Revenue'>('overall');
+  const [auditResult, setAuditResult] = useState<{ 
+      overallScore: number, 
+      summary: string, 
+      recommendations: string[],
+      metricBreakdown: {
+        CTR: { score: number, insight: string, recommendations: string[] },
+        CPC: { score: number, insight: string, recommendations: string[] },
+        Conversion: { score: number, insight: string, recommendations: string[] },
+        Revenue: { score: number, insight: string, recommendations: string[] }
+      }
+  } | null>(null);
 
   const handleDownload = (format: 'excel' | 'csv') => {
     alert(`Đang tải xuống báo cáo...`);
@@ -70,84 +80,148 @@ const ReportingView: React.FC<ReportingViewProps> = ({ campaigns }) => {
       </div>
   );
 
+  const currentData = () => {
+    if (!auditResult) return null;
+    if (metricView === 'overall') {
+        return {
+            score: auditResult.overallScore,
+            summary: auditResult.summary,
+            recs: auditResult.recommendations,
+            label: "BASED ON OBJ. & METRICS"
+        };
+    }
+    const metricData = auditResult.metricBreakdown[metricView];
+    return {
+        score: metricData?.score || 0,
+        summary: metricData?.insight || "Chưa có dữ liệu phân tích.",
+        recs: metricData?.recommendations || [],
+        label: `${metricView === 'Revenue' ? 'GMV/ROAS' : metricView} HEALTH`
+    };
+  };
+
+  const activeData = currentData();
+
+  const getMetricLabel = (key: string) => {
+      switch(key) {
+          case 'overall': return 'Tổng quan';
+          case 'CTR': return 'CTR';
+          case 'CPC': return 'CPC';
+          case 'Conversion': return 'Chuyển đổi (Leads)';
+          case 'Revenue': return 'Doanh thu (GMV)';
+          default: return key;
+      }
+  };
+
+  const getMetricDescription = (key: string) => {
+      switch(key) {
+          case 'overall': return "Hệ thống sẽ quét toàn bộ dữ liệu lịch sử, so sánh với Benchmark ngành và đưa ra điểm chất lượng (Quality Score) cùng các đề xuất tối ưu.";
+          case 'CTR': return "Phân tích mức độ hấp dẫn của quảng cáo dựa trên tỷ lệ nhấp (Click-Through Rate). So sánh creative và copywriter với đối thủ.";
+          case 'CPC': return "Đánh giá hiệu quả chi phí trên mỗi lượt click. Phân tích chiến lược giá thầu (Bidding) và mức độ cạnh tranh của từ khóa/audiences.";
+          case 'Conversion': return "Phân tích chuyên sâu về tỷ lệ chuyển đổi (Conversion Rate), CPA (Cost Per Action) cho các mục tiêu: Tin nhắn, Leads, Điền Form.";
+          case 'Revenue': return "Đánh giá hiệu quả doanh thu: GMV (Tổng giá trị giao dịch), AOV (Giá trị đơn hàng trung bình) và ROAS (Lợi nhuận trên chi tiêu).";
+          default: return "";
+      }
+  };
+
   return (
     <div className="animate-fade-in space-y-8">
       
       {/* Redesigned AI Audit Section - Exactly Matching the Premium Layout */}
-      <div className="bg-gradient-to-br from-[#4318FF] via-[#5D38FF] to-[#3A14D1] rounded-[2rem] p-8 text-white shadow-2xl relative overflow-hidden transition-all duration-500 border border-white/10">
+      <div className="bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden transition-all duration-500 border border-white/10">
         
-        {auditResult ? (
-            <div className="flex flex-col lg:flex-row gap-10 items-stretch w-full relative z-10">
-                {/* Left: Info & Gauge */}
-                <div className="flex-1 flex flex-col items-start justify-center">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md border border-white/10">
-                            <ShieldCheck size={24} className="text-green-400" />
-                        </div>
-                        <h2 className="text-2xl font-extrabold tracking-tight">AI Campaign Audit</h2>
-                    </div>
-                    
-                    <p className="text-indigo-100 text-sm mb-10 leading-relaxed opacity-90 max-w-lg">
-                        Hệ thống sẽ quét toàn bộ dữ liệu lịch sử, so sánh với Benchmark ngành và đưa ra điểm chất lượng (Quality Score) cùng các đề xuất tối ưu.
-                    </p>
-                    
-                    <div className="flex items-center gap-8">
-                         {/* High-Contrast Score Circle Gauge */}
-                         <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
-                            <svg className="w-full h-full transform -rotate-90">
-                                <defs>
-                                  <linearGradient id="auditGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#4ade80" />
-                                    <stop offset="100%" stopColor="#22d3ee" />
-                                  </linearGradient>
-                                </defs>
-                                <circle 
-                                    cx="56" cy="56" r="48" 
-                                    stroke="currentColor" strokeWidth="10" 
-                                    fill="transparent" className="text-indigo-950/40" 
-                                />
-                                <circle 
-                                    cx="56" cy="56" r="48" 
-                                    stroke="url(#auditGradient)" strokeWidth="10" 
-                                    fill="transparent" 
-                                    strokeDasharray={301.6} 
-                                    strokeDashoffset={301.6 * (1 - auditResult.overallScore / 100)} 
-                                    strokeLinecap="round" 
-                                    className="transition-all duration-1000 ease-out drop-shadow-[0_0_8px_rgba(74,222,128,0.4)]" 
-                                />
-                            </svg>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-3xl font-black text-white">{auditResult.overallScore}</span>
-                            </div>
-                        </div>
-
-                        <div className="space-y-1">
-                             <div className="text-xl font-extrabold text-white">Overall Score</div>
-                             <div className="text-xs font-bold text-indigo-200 uppercase tracking-widest opacity-80">Based on Obj. & Metrics</div>
-                        </div>
+        {activeData ? (
+            <div className="flex flex-col gap-8 relative z-10">
+                {/* Metric Selector Tabs */}
+                <div className="flex justify-center lg:justify-start">
+                    <div className="flex gap-2 bg-black/20 p-1.5 rounded-xl backdrop-blur-md border border-white/10 flex-wrap">
+                        {['overall', 'CTR', 'CPC', 'Conversion', 'Revenue'].map((m) => (
+                            <button
+                                key={m}
+                                onClick={() => setMetricView(m as any)}
+                                className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                                    metricView === m 
+                                    ? 'bg-white text-indigo-600 shadow-lg scale-105' 
+                                    : 'text-indigo-200 hover:bg-white/10 hover:text-white'
+                                }`}
+                            >
+                                {getMetricLabel(m)}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                {/* Right: Summary Box with structured layout */}
-                <div className="lg:w-[540px] bg-indigo-950/40 p-8 rounded-[2rem] border border-white/10 backdrop-blur-xl flex flex-col shadow-inner">
-                     <div className="flex items-center gap-2 mb-4 text-yellow-300 font-bold text-xs uppercase tracking-[0.2em]">
-                         <Zap size={14} fill="currentColor" /> AI SUMMARY
-                     </div>
-                     
-                     <p className="text-sm text-white/90 mb-6 leading-relaxed font-medium">
-                         {auditResult.summary}
-                     </p>
-                     
-                     <div className="space-y-3.5 mt-auto">
-                         {auditResult.recommendations.map((rec, i) => (
-                             <div key={i} className="flex gap-4 text-xs font-medium text-white/80 bg-black/30 p-4 rounded-2xl border border-white/5 hover:bg-black/40 transition-colors items-start">
-                                 <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0 border border-orange-500/10">
-                                     <AlertCircle size={14} className="text-orange-400" />
+                <div className="flex flex-col lg:flex-row gap-12 items-stretch w-full animate-fade-in">
+                    {/* Left: Info & Gauge */}
+                    <div className="flex-1 flex flex-col items-start justify-center">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-md border border-white/10">
+                                <ShieldCheck size={28} className="text-green-400" />
+                            </div>
+                            <h2 className="text-3xl font-extrabold tracking-tight">AI Campaign Audit</h2>
+                        </div>
+                        
+                        <p className="text-indigo-100 text-sm mb-12 leading-relaxed opacity-90 max-w-lg font-medium min-h-[40px]">
+                            {getMetricDescription(metricView)}
+                        </p>
+                        
+                        <div className="flex items-center gap-8">
+                             {/* High-Contrast Score Circle Gauge */}
+                             <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
+                                <svg className="w-full h-full transform -rotate-90">
+                                    <defs>
+                                      <linearGradient id="auditGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#22c55e" /> {/* Green */}
+                                        <stop offset="100%" stopColor="#3b82f6" /> {/* Blue */}
+                                      </linearGradient>
+                                    </defs>
+                                    <circle 
+                                        cx="64" cy="64" r="56" 
+                                        stroke="currentColor" strokeWidth="12" 
+                                        fill="transparent" className="text-black/20" 
+                                    />
+                                    <circle 
+                                        cx="64" cy="64" r="56" 
+                                        stroke="url(#auditGradient)" strokeWidth="12" 
+                                        fill="transparent" 
+                                        strokeDasharray={351.8} 
+                                        strokeDashoffset={351.8 * (1 - activeData.score / 100)} 
+                                        strokeLinecap="round" 
+                                        className="transition-all duration-1000 ease-out drop-shadow-[0_0_10px_rgba(34,197,94,0.5)]" 
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span className="text-4xl font-black text-white tracking-tighter">{activeData.score}</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                 <div className="text-2xl font-extrabold text-white">{metricView === 'overall' ? 'Overall Score' : `${metricView} Score`}</div>
+                                 <div className="text-xs font-bold text-indigo-200 uppercase tracking-widest opacity-80">{activeData.label}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: Summary Box with structured layout */}
+                    <div className="lg:w-[600px] bg-[#1e1b4b]/40 p-8 rounded-[2rem] border border-white/10 backdrop-blur-xl flex flex-col shadow-inner min-h-[300px]">
+                         <div className="flex items-center gap-2 mb-4 text-yellow-400 font-bold text-xs uppercase tracking-[0.2em]">
+                             <Zap size={14} fill="currentColor" /> AI SUMMARY
+                         </div>
+                         
+                         <p className="text-sm text-white/95 mb-6 leading-relaxed font-medium">
+                             {activeData.summary}
+                         </p>
+                         
+                         <div className="space-y-4 mt-auto">
+                             {activeData.recs.map((rec, i) => (
+                                 <div key={i} className="flex gap-4 text-xs font-medium text-white/90 bg-black/20 p-4 rounded-2xl border border-white/5 hover:bg-black/30 transition-colors items-start">
+                                     <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0 border border-orange-500/10 mt-0.5">
+                                         <AlertCircle size={14} className="text-orange-500" />
+                                     </div>
+                                     <span className="leading-relaxed">{rec}</span>
                                  </div>
-                                 <span className="leading-relaxed">{rec}</span>
-                             </div>
-                         ))}
-                     </div>
+                             ))}
+                         </div>
+                    </div>
                 </div>
             </div>
         ) : (
@@ -155,11 +229,11 @@ const ReportingView: React.FC<ReportingViewProps> = ({ campaigns }) => {
             <div className="flex flex-col items-start relative z-10 py-6">
                  <div className="flex items-center gap-3 mb-4">
                     <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md border border-white/10">
-                        <ShieldCheck size={24} className="text-green-400" />
+                        <ShieldCheck size={28} className="text-green-400" />
                     </div>
                     <h2 className="text-3xl font-extrabold tracking-tight">AI Campaign Audit</h2>
                  </div>
-                 <p className="text-indigo-100 text-sm max-w-xl leading-relaxed mb-10 opacity-80">
+                 <p className="text-indigo-100 text-sm max-w-xl leading-relaxed mb-10 opacity-80 font-medium">
                     Hệ thống sẽ quét toàn bộ dữ liệu lịch sử, so sánh với Benchmark ngành và đưa ra điểm chất lượng (Quality Score) cùng các đề xuất tối ưu dựa trên mục tiêu chiến dịch.
                  </p>
                  <button 
@@ -174,8 +248,8 @@ const ReportingView: React.FC<ReportingViewProps> = ({ campaigns }) => {
         )}
         
         {/* Background Visual Accents for a more premium look */}
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white opacity-[0.03] rounded-full -mr-32 -mt-48 pointer-events-none blur-[100px]"></div>
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-400 opacity-10 rounded-full -ml-20 -mb-20 pointer-events-none blur-[80px]"></div>
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-[0.04] rounded-full -mr-32 -mt-48 pointer-events-none blur-[80px]"></div>
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500 opacity-10 rounded-full -ml-20 -mb-20 pointer-events-none blur-[60px]"></div>
       </div>
 
       {/* Summary Cards */}

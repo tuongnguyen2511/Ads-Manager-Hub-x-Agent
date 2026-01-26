@@ -15,7 +15,8 @@ import {
   DollarSign, 
   CheckCircle,
   MessageCircle,
-  HelpCircle
+  HelpCircle,
+  Music
 } from 'lucide-react';
 import { PlatformId, ForecastResult } from '../types';
 import { generatePerformanceForecast } from '../services/geminiService';
@@ -34,7 +35,7 @@ const PlanningView = () => {
   const platforms: {id: PlatformId, name: string, icon: any, color: string}[] = [
     { id: 'facebook', name: 'Facebook', icon: Users, color: '#3b82f6' },
     { id: 'google', name: 'Google', icon: Search, color: '#ef4444' },
-    { id: 'tiktok', name: 'TikTok', icon: Users, color: '#000000' },
+    { id: 'tiktok', name: 'TikTok', icon: Music, color: '#000000' },
     { id: 'zalo', name: 'Zalo Ads', icon: MessageCircle, color: '#0068ff' }, // Zalo Brand Color
   ];
 
@@ -75,11 +76,14 @@ const PlanningView = () => {
             <div className="relative">
               <input 
                 type="text" 
-                value={budget.toLocaleString()} 
-                onChange={(e) => setBudget(Number(e.target.value.replace(/\D/g, '')))}
-                className="w-full p-3 pl-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-gray-900"
+                value={budget.toLocaleString('vi-VN')} 
+                onChange={(e) => {
+                    const rawValue = e.target.value.replace(/\D/g, '');
+                    setBudget(rawValue ? parseInt(rawValue, 10) : 0);
+                }}
+                className="w-full p-4 pl-4 border border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-white bg-gray-800 text-lg shadow-inner"
               />
-              <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">VNĐ</span>
             </div>
             <div className="flex gap-2 mt-2 flex-wrap">
               {[10000000, 20000000, 50000000].map(b => (
@@ -119,7 +123,7 @@ const PlanningView = () => {
                value={keywords}
                onChange={(e) => setKeywords(e.target.value)}
                placeholder="VD: Bất động sản cao cấp, Giày da nam, Khóa học tiếng Anh..."
-               className="w-full p-3 border border-gray-200 rounded-xl h-24 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+               className="w-full p-4 border border-gray-700 rounded-xl h-24 focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-gray-800 text-white placeholder-gray-400 shadow-inner"
              />
           </div>
 
